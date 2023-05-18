@@ -6,10 +6,14 @@ const jwt = require('jsonwebtoken');
 const PORT = process.env.PORT || 3000;
 const mongoose = require('mongoose').default;
 const secretKey = 'duck';
+const path = require("path");
 
-app.use(express.static('public'));
+
+app.use(express.static(path.join(__dirname, 'public'), { "extensions": ["html", "htm", "js"] }));
+app.use(bodyParser.json());
 
 const { authenticateToken, authorizeRole } = require('../Middleware/authMiddleware');
+
 
 
 
@@ -36,13 +40,13 @@ app.get('/', (req, res) => {
 
 app.post('/register', async (req, res) => {
     try {
-        const { username, password } = req.body;
-
+        const { username, password, role } = req.body;
+        console.log(username,password, role);
         // Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Save the user to the database
-        const user = await User.create({ username, password: hashedPassword });
+        const user = await User.create({ username, password: hashedPassword, role });
         console.log('User registered:', user.username);
 
         res.status(201).json({ message: 'User registered successfully' });
@@ -54,7 +58,6 @@ app.post('/register', async (req, res) => {
 app.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
-
         // Retrieve the user from the database
         const user = await User.findOne({ username });
 
@@ -68,7 +71,6 @@ app.post('/login', async (req, res) => {
         // Generate a JWT token
         const token = jwt.sign({ username: user.username, role: user.role }, 'duck');
         res.json({ token });
-        return user;
     } catch (error) {
         res.status(500).json({ error: 'An error occurred' });
     }
@@ -77,6 +79,10 @@ app.post('/login', async (req, res) => {
 
 app.get('/login', (req, res) => {
     res.sendFile(__dirname + '/public/login.html');
+});
+
+app.get('/register', (req, res) => {
+    res.sendFile(__dirname + '/public/register.html');
 });
 
 app.get('/protected', authenticateToken, (req, res) => {
